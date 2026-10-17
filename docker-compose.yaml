@@ -1,0 +1,41 @@
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./app:/app
+    environment:
+      APP_ENV: dev
+      COMPOSER_ALLOW_SUPERUSER: "1"
+      DATABASE_URL: "postgresql://wow:localpass@db:5432/wow?serverVersion=17&charset=utf8"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:stable-alpine
+    volumes:
+      - ./app/public:/app/public:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: wow
+      POSTGRES_USER: wow
+      POSTGRES_PASSWORD: localpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wow -d wow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
