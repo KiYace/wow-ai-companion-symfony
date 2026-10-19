@@ -46,9 +46,13 @@ final class GameEventControllerTest extends WebTestCase
 
         $client->jsonRequest('POST', '/api/events', [
             'type' => 'player_died',
-            'timestamp' => '2026-10-17T10:56:42Z',
-            'data' => [],
-            'is_admin' => true,
+            'timestamp' => '2026-10-19T12:00:00Z',
+            'data' => [
+                'character' => 'Мистер Фокс',
+                'level' => 80,
+                'location' => 'Stormwind',
+            ],
+            'extra_field' => 'something',
         ]);
 
         self::assertResponseStatusCodeSame(200);
@@ -93,5 +97,34 @@ final class GameEventControllerTest extends WebTestCase
             ],
             422,
         ];
+    }
+
+    public function testInvalidPlayerDiedDataReturnsViolations(): void
+    {
+        $client = static::createClient();
+        $client->jsonRequest('POST', '/api/events', [
+            'type' => 'player_died',
+            'timestamp' => '2026-10-19T12:00:00Z',
+            'data' => [
+                'character' => '',
+                'level' => -5,
+                'location' => 'Stormwind',
+            ],
+        ]);
+
+        $response = json_decode(
+            $client->getResponse()->getContent(),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        $fields = array_column($response['violations'], 'field');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertArrayHasKey('violations', $response);
+        self::assertContains('character', $fields);
+        self::assertContains('level', $fields);
+        self::assertCount(2, $response['violations']);
     }
 }

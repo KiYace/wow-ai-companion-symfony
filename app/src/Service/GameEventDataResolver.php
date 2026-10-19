@@ -6,7 +6,9 @@ namespace App\Service;
 
 use App\DTO\Event\EventDataInterface;
 use App\DTO\Event\PlayerDiedData;
+use App\Exception\InvalidGameEventDataException;
 use InvalidArgumentException;
+use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -35,10 +37,25 @@ final readonly class GameEventDataResolver
             );
         }
 
-        $event = $this->denormalizer->denormalize(
-            $data,
-            $class,
-        );
+        try {
+            $event = $this->denormalizer->denormalize(
+                $data,
+                $class,
+            );
+        } catch (NotNormalizableValueException $exception) {
+            $message = sprintf(
+                'Expected type %s, got %s.',
+                implode('|', $exception->getExpectedTypes()),
+                $exception->getCurrentType(),
+            );
+
+            throw new InvalidGameEventDataException(
+                path: $exception->getPath(),
+                message: $message,
+                previous: $exception,
+            );
+        }
+
 
         $errors = $this->validator->validate($event);
         if (count($errors) > 0) {

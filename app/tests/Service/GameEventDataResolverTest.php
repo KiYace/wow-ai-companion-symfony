@@ -9,6 +9,7 @@ use App\Service\GameEventDataResolver;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class GameEventDataResolverTest extends TestCase
 {
@@ -36,7 +37,9 @@ final class GameEventDataResolverTest extends TestCase
             ->with($data, PlayerDiedData::class)
             ->willReturn($expected);
 
-        $resolver = new GameEventDataResolver($denormalizer);
+        $validator = $this->createStub(ValidatorInterface::class);
+
+        $resolver = new GameEventDataResolver($denormalizer, $validator);
 
         $result = $resolver->resolve('player_died', $data);
 
@@ -53,7 +56,9 @@ final class GameEventDataResolverTest extends TestCase
             ->expects(self::never())
             ->method('denormalize');
 
-        $resolver = new GameEventDataResolver($denormalizer);
+        $validator = $this->createStub(ValidatorInterface::class);
+
+        $resolver = new GameEventDataResolver($denormalizer, $validator);
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessageIs(
