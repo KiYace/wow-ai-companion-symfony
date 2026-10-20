@@ -38,13 +38,9 @@ final class ApiExceptionListener
         }
         if ($exception instanceof InvalidGameEventDataException) {
             $event->setResponse(new JsonResponse([
-                'violations' => [
-                    [
-                        'field' => $exception->getPath(),
-                        'message' => $exception->getMessage()
-                    ]
-                ],
+                'violations' => $exception->getErrors(),
             ], 422));
+
             return;
         }
     }

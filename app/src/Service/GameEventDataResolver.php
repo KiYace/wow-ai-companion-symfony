@@ -8,6 +8,7 @@ use App\DTO\Event\EventDataInterface;
 use App\DTO\Event\PlayerDiedData;
 use App\Exception\InvalidGameEventDataException;
 use InvalidArgumentException;
+use Symfony\Component\Serializer\Exception\MissingConstructorArgumentsException;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
@@ -50,16 +51,30 @@ final readonly class GameEventDataResolver
             );
 
             throw new InvalidGameEventDataException(
-                path: $exception->getPath(),
-                message: $message,
+                errors: [['field' => $exception->getPath(), 'message' => $message]],
+                previous: $exception,
+            );
+        } catch (MissingConstructorArgumentsException $exception) {
+            $missingFields = $exception->getMissingConstructorArguments();
+            $errors = [];
+
+            foreach ($missingFields as $field) {
+                $errors[] = [
+                    'field' => $field,
+                    'message' => 'This field is required.'
+                ];
+            }
+
+            throw new InvalidGameEventDataException(
+                errors: $errors,
                 previous: $exception,
             );
         }
 
 
-        $errors = $this->validator->validate($event);
-        if (count($errors) > 0) {
-            throw new ValidationFailedException($event, $errors);
+        $violations = $this->validator->validate($event);
+        if (count($violations) > 0) {
+            throw new ValidationFailedException($event, $violations);
         }
 
         return $event;

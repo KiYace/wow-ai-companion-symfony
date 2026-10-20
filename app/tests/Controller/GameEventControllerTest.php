@@ -127,4 +127,64 @@ final class GameEventControllerTest extends WebTestCase
         self::assertContains('level', $fields);
         self::assertCount(2, $response['violations']);
     }
+
+    public function testMissingRequiredFieldReturns422(): void
+    {
+        $client = static::createClient();
+        $client->jsonRequest('POST', '/api/events', [
+            'type' => 'player_died',
+            'timestamp' => '2026-10-19T12:00:00Z',
+            'data' => [
+                'character' => 'Fenrir',
+                'location' => 'Stormwind',
+            ],
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+
+        $response = json_decode(
+            $client->getResponse()->getContent(),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        self::assertArrayHasKey('violations', $response);
+        self::assertCount(1, $response['violations']);
+
+        $fields = array_column($response['violations'], 'field');
+
+        self::assertContains('level', $fields);
+    }
+
+    public function testMultipleMissingFieldsReturnViolations(): void
+    {
+        $client = static::createClient();
+        $client->jsonRequest('POST', '/api/events', [
+            'type' => 'player_died',
+            'timestamp' => '2026-10-19T12:00:00Z',
+            'data' => [
+                'character' => 'Fenrir',
+            ],
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+
+        $response = json_decode(
+            $client->getResponse()->getContent(),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        self::assertArrayHasKey('violations', $response);
+        self::assertCount(2, $response['violations']);
+
+        $fields = array_column($response['violations'], 'field');
+
+        self::assertEqualsCanonicalizing(
+            ['level', 'location'],
+            $fields,
+        );
+    }
 }

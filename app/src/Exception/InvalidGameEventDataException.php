@@ -6,16 +6,19 @@ namespace App\Exception;
 
 final class InvalidGameEventDataException extends \RuntimeException
 {
+    /**
+     * @param list<array{field: string, message: string}> $errors
+     */
     public function __construct(
-        private readonly string $path,
-        string $message,
+        private readonly array $errors,
+        string $message = 'Invalid game event data.',
         ?\Throwable $previous = null,
     ) {
         parent::__construct($message, 0, $previous);
     }
 
-    public function getPath(): string
+    public function getErrors(): array
     {
-        return $this->path;
+        return $this->errors;
     }
 }
